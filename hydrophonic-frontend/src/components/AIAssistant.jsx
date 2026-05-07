@@ -99,7 +99,7 @@ function AIAssistant() {
 
   return (
     <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[420px_1fr]">
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
         <div className="mb-5">
           <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
             AI Vision
@@ -110,7 +110,7 @@ function AIAssistant() {
           </p>
         </div>
 
-        <label className="block rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm font-medium text-slate-600 transition hover:border-emerald-400 hover:bg-emerald-50">
+        <label className="block rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-4 text-center text-sm font-medium text-slate-700 transition hover:border-emerald-400 hover:bg-emerald-50">
           <input
             type="file"
             accept="image/*"
@@ -124,7 +124,7 @@ function AIAssistant() {
           <img
             src={imagePreview}
             alt="Plant preview"
-            className="mt-4 h-56 w-full rounded-lg object-cover"
+            className="mt-4 h-56 w-full rounded-2xl object-cover"
           />
         )}
 
@@ -138,13 +138,13 @@ function AIAssistant() {
           type="button"
           onClick={handleAnalyzeImage}
           disabled={isAnalyzing}
-          className="mt-4 w-full rounded-lg bg-emerald-600 px-4 py-2.5 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+          className="mt-4 w-full rounded-2xl bg-emerald-700 px-4 py-2.5 font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-emerald-300"
         >
           {isAnalyzing ? "Analyzing..." : "Analyze Image"}
         </button>
 
         {diagnosis && (
-          <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+          <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
             <h3 className="font-bold text-emerald-950">AI Diagnosis</h3>
             <dl className="mt-3 space-y-3 text-sm">
               <div>
@@ -168,15 +168,15 @@ function AIAssistant() {
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
         <div className="mb-4">
-          <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">
+          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
             AI Chat
           </p>
           <h2 className="mt-1 text-lg font-bold text-slate-950">Hydroponic Assistant</h2>
         </div>
 
-        <div className="flex h-[420px] flex-col rounded-lg border border-slate-200 bg-slate-50">
+        <div className="flex h-[420px] flex-col rounded-2xl border border-emerald-100 bg-emerald-50/40">
           <div className="flex-1 space-y-3 overflow-y-auto p-4">
             {chatMessages.map((item, index) => (
               <div
@@ -186,7 +186,7 @@ function AIAssistant() {
                 <div
                   className={`max-w-[82%] rounded-lg px-4 py-3 text-sm leading-6 ${
                     item.role === "user"
-                      ? "bg-sky-700 text-white"
+                      ? "bg-emerald-700 text-white"
                       : "bg-white text-slate-700 shadow-sm"
                   }`}
                 >
@@ -212,12 +212,12 @@ function AIAssistant() {
               placeholder="Ask about pH, yellow leaves, nutrients..."
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              className="min-w-0 flex-1 rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
             <button
               type="submit"
               disabled={isChatLoading}
-              className="rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-sky-300"
+              className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-emerald-300"
             >
               Send
             </button>

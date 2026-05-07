@@ -1,35 +1,260 @@
-import { useEffect, useState } from "react";
-import { fetchAlerts, fetchLatestSensor } from "../../api/sensorApi";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip
+} from "chart.js";
+import { Bar, Line } from "react-chartjs-2";
+import { fetchAlerts, fetchLatestSensor, fetchSensorHistory } from "../../api/sensorApi";
 import StatCard from "../../components/common/StatCard";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+const lineOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "top",
+      labels: {
+        boxWidth: 10,
+        usePointStyle: true
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: { display: false }
+    },
+    y: {
+      beginAtZero: false,
+      grid: { color: "rgba(148, 163, 184, 0.18)" }
+    }
+  }
+};
+
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false }
+  },
+  scales: {
+    x: { grid: { display: false } },
+    y: { grid: { color: "rgba(148, 163, 184, 0.18)" } }
+  }
+};
 
 function IoTDashboard() {
   const [sensor, setSensor] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchLatestSensor().then((response) => setSensor(response.data)).catch(() => setSensor(null));
-    fetchAlerts().then((response) => setAlerts(response.data)).catch(() => setAlerts([]));
+    const load = async () => {
+      try {
+        const [latestResponse, alertsResponse, historyResponse] = await Promise.all([
+          fetchLatestSensor(),
+          fetchAlerts(),
+          fetchSensorHistory()
+        ]);
+
+        setSensor(latestResponse.data);
+        setAlerts(alertsResponse.data);
+        setHistory(Array.isArray(historyResponse.data) ? historyResponse.data : []);
+      } catch {
+        setSensor(null);
+        setAlerts([]);
+        setHistory([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    load();
   }, []);
+
+  const chartHistory = useMemo(() => [...history].reverse().slice(-8), [history]);
+  const labels = useMemo(
+    () =>
+      chartHistory.map((entry, index) =>
+        entry?.createdAt
+          ? new Date(entry.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : `Sample ${index + 1}`
+      ),
+    [chartHistory]
+  );
+
+  const climateTrendData = useMemo(
+    () => ({
+      labels,
+      datasets: [
+        {
+          label: "pH",
+          data: chartHistory.map((entry) => entry.ph),
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.14)",
+          fill: true,
+          tension: 0.35
+        },
+        {
+          label: "Temperature",
+          data: chartHistory.map((entry) => entry.temperature),
+          borderColor: "#0f172a",
+          backgroundColor: "rgba(15, 23, 42, 0.08)",
+          fill: true,
+          tension: 0.35
+        }
+      ]
+    }),
+    [chartHistory, labels]
+  );
+
+  const nutrientBalanceData = useMemo(
+    () => ({
+      labels,
+      datasets: [
+        {
+          data: chartHistory.map((entry) => entry.tds),
+          backgroundColor: ["#0ea5e9", "#22c55e", "#f59e0b", "#38bdf8", "#14b8a6", "#8b5cf6", "#f97316", "#10b981"]
+        }
+      ]
+    }),
+    [chartHistory, labels]
+  );
+
+  const systemHealth = [
+    {
+      label: "Pump readiness",
+      value: sensor?.waterLevel > 30 ? "Stable" : "Needs refill soon",
+      tone: sensor?.waterLevel > 30 ? "emerald" : "amber"
+    },
+    {
+      label: "Climate response",
+      value: sensor?.temperature > 30 ? "Fogger attention" : "Within range",
+      tone: sensor?.temperature > 30 ? "rose" : "sky"
+    },
+    {
+      label: "Nutrient strength",
+      value: sensor?.tds ? `${sensor.tds} ppm` : "No reading",
+      tone: "amber"
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="pH" value={sensor?.ph ?? "--"} />
-        <StatCard label="TDS" value={sensor?.tds ?? "--"} />
-        <StatCard label="Temperature" value={sensor?.temperature ?? "--"} />
-        <StatCard label="Humidity" value={sensor?.humidity ?? "--"} />
-        <StatCard label="Water Level" value={sensor?.waterLevel ?? "--"} />
-      </div>
-      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-lg font-bold text-slate-950">Alerts</h3>
-        <div className="mt-4 space-y-3">
-          {alerts.map((alert) => (
-            <div key={alert._id} className="rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
-              {alert.message}
-            </div>
-          ))}
+      <section className="overflow-hidden rounded-[28px] border border-white/70 bg-white/90 p-6 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-600">IoT Control Center</p>
+            <h2 className="mt-2 text-3xl font-bold text-slate-950">Live farm conditions and alerts</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500">
+              Watch the latest readings, scan recent trends, and spot automation issues before they hit
+              crop quality.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-emerald-900 px-4 py-3 text-sm font-semibold text-white">
+            {isLoading ? "Loading sensor feed..." : `${history.length || 0} readings tracked`}
+          </div>
         </div>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="pH" value={sensor?.ph ?? "--"} tone="emerald" hint="Acidity balance" />
+        <StatCard label="TDS" value={sensor?.tds ?? "--"} tone="sky" hint="Nutrient strength" />
+        <StatCard label="Temperature" value={sensor?.temperature ?? "--"} tone="amber" hint="Air or solution heat" />
+        <StatCard label="Humidity" value={sensor?.humidity ?? "--"} tone="slate" hint="Ambient moisture" />
+        <StatCard label="Water Level" value={sensor?.waterLevel ?? "--"} tone="rose" hint="Reservoir status" />
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-6">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Trend Chart</p>
+            <h3 className="mt-1 text-xl font-bold text-slate-950">pH and temperature movement</h3>
+          </div>
+          <div className="mt-6 h-80">
+            {chartHistory.length > 0 ? (
+              <Line data={climateTrendData} options={lineOptions} />
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+                No sensor history available yet.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-lime-700">Snapshot</p>
+          <h3 className="mt-1 text-xl font-bold text-slate-950">Nutrient trend</h3>
+          <div className="mt-6 h-80">
+            {chartHistory.length > 0 ? (
+              <Bar data={nutrientBalanceData} options={barOptions} />
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+                Waiting for TDS history.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        {systemHealth.map((item) => (
+          <StatCard key={item.label} label={item.label} value={item.value} tone={item.tone} />
+        ))}
+      </section>
+
+      <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-800">Alerts</p>
+            <h3 className="mt-1 text-xl font-bold text-slate-950">Recent system notifications</h3>
+          </div>
+          <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-600">
+            {alerts.length} active
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3">
+          {alerts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+              No alerts right now. Your latest reading looks calm.
+            </div>
+          ) : (
+            alerts.map((alert) => (
+              <div
+                key={alert._id}
+                className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-700"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="font-semibold text-slate-900">{alert.type || "Alert"}</p>
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {alert.createdAt ? new Date(alert.createdAt).toLocaleString() : "Recent"}
+                  </span>
+                </div>
+                <p className="mt-2 leading-6">{alert.message}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

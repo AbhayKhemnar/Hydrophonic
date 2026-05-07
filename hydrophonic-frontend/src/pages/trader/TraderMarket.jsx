@@ -8,10 +8,10 @@ function AuctionCard({ product, bids, onBid, loadingProductId }) {
   const winner = bids.find((bid) => bid.status === "accepted");
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">Auction</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Auction</p>
           <h3 className="mt-1 text-xl font-bold text-slate-950">{product.name}</h3>
           <p className="mt-1 text-sm text-slate-500">
             {product.farmer?.name} • {product.quantity} kg • Ends{" "}
@@ -63,7 +63,7 @@ function AuctionCard({ product, bids, onBid, loadingProductId }) {
               await onBid(product._id, bidAmount);
               setBidAmount("");
             }}
-            className="rounded-lg bg-sky-700 px-4 py-2.5 font-semibold text-white"
+            className="rounded-2xl bg-emerald-700 px-4 py-2.5 font-semibold text-white"
           >
             {loadingProductId === product._id ? "Bidding..." : "Place Bid"}
           </button>
@@ -144,8 +144,8 @@ function TraderMarket() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-sky-700">Trader Market</p>
+      <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Trader Market</p>
         <h2 className="mt-1 text-2xl font-bold text-slate-950">Bid on live auctions</h2>
         <p className="mt-2 text-sm text-slate-600">
           Multiple traders can bid during the auction window. When the time ends, the highest valid bid
@@ -184,7 +184,7 @@ function TraderMarket() {
         )}
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.45)] backdrop-blur">
         <h3 className="text-xl font-bold text-slate-950">Direct Bulk Buying</h3>
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {directProducts.map((product) => (
