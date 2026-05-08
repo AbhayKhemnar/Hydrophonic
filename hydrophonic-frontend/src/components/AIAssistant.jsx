@@ -1,7 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-
-const API_BASE = "http://localhost:5000/api/ai";
+import { API_AI_BASE_URL } from "../config/api";
 
 function AIAssistant() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -52,7 +51,7 @@ function AIAssistant() {
     setImageError("");
 
     try {
-      const res = await axios.post(`${API_BASE}/analyze-image`, formData, {
+      const res = await axios.post(`${API_AI_BASE_URL}/analyze-image`, formData, {
         headers: {
           "Content-Type": "multipart/form-data"
         }
@@ -83,7 +82,7 @@ function AIAssistant() {
     setIsChatLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/chat`, { message: cleanMessage });
+      const res = await axios.post(`${API_AI_BASE_URL}/chat`, { message: cleanMessage });
       setChatMessages((items) => [...items, { role: "assistant", text: res.data.reply }]);
     } catch (error) {
       console.error(error);

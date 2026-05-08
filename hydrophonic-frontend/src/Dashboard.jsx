@@ -11,12 +11,12 @@ import {
   Legend
 } from "chart.js";
 import AIAssistant from "./components/AIAssistant";
+import { API_BASE_URL } from "./config/api";
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Tooltip, Legend);
 
-const API_BASE = "http://localhost:5000/api";
-const SENSOR_URL = `${API_BASE}/sensor/sensor-data`;
-const CONTROL_URL = `${API_BASE}/sensor/control`;
+const SENSOR_URL = `${API_BASE_URL}/sensor/sensor-data`;
+const CONTROL_URL = `${API_BASE_URL}/sensor/control`;
 
 const formatValue = (value, suffix = "") => {
   if (value === undefined || value === null || value === "") return "--";
