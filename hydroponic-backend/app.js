@@ -19,6 +19,7 @@ app.use("/api/sensor-data", require("./routes/sensorDataRoutes"));
 app.use("/api/rules", require("./routes/ruleRoutes"));
 app.use("/api/images", require("./routes/imageRoutes"));
 app.use("/api/ai", require("./routes/aiRoutes"));
+app.use("/api/device-commands", require("./routes/deviceCommandRoutes"));
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });

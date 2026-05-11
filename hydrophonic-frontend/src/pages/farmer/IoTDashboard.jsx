@@ -11,7 +11,13 @@ import {
   Tooltip
 } from "chart.js";
 import { Bar, Line } from "react-chartjs-2";
-import { fetchAlerts, fetchLatestSensor, fetchSensorHistory } from "../../api/sensorApi";
+import {
+  fetchAlerts,
+  fetchLatestSensor,
+  fetchMyDeviceCommands,
+  fetchSensorHistory,
+  queueDeviceCommand
+} from "../../api/sensorApi";
 import StatCard from "../../components/common/StatCard";
 
 ChartJS.register(
@@ -64,24 +70,35 @@ function IoTDashboard() {
   const [sensor, setSensor] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [history, setHistory] = useState([]);
+  const [commands, setCommands] = useState([]);
+  const [commandMessage, setCommandMessage] = useState("");
+  const [commandError, setCommandError] = useState("");
+  const [activeSwitch, setActiveSwitch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  const loadDashboard = async () => {
+    const [latestResponse, alertsResponse, historyResponse, commandsResponse] = await Promise.all([
+      fetchLatestSensor(),
+      fetchAlerts(),
+      fetchSensorHistory(),
+      fetchMyDeviceCommands()
+    ]);
+
+    setSensor(latestResponse.data);
+    setAlerts(alertsResponse.data);
+    setHistory(Array.isArray(historyResponse.data) ? historyResponse.data : []);
+    setCommands(Array.isArray(commandsResponse.data) ? commandsResponse.data : []);
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [latestResponse, alertsResponse, historyResponse] = await Promise.all([
-          fetchLatestSensor(),
-          fetchAlerts(),
-          fetchSensorHistory()
-        ]);
-
-        setSensor(latestResponse.data);
-        setAlerts(alertsResponse.data);
-        setHistory(Array.isArray(historyResponse.data) ? historyResponse.data : []);
+        await loadDashboard();
       } catch {
         setSensor(null);
         setAlerts([]);
         setHistory([]);
+        setCommands([]);
       } finally {
         setIsLoading(false);
       }
@@ -89,6 +106,29 @@ function IoTDashboard() {
 
     load();
   }, []);
+
+  const handleSwitch = async (device, action) => {
+    setCommandMessage("");
+    setCommandError("");
+    setActiveSwitch(`${device}-${action}`);
+
+    try {
+      const response = await queueDeviceCommand({
+        device,
+        action,
+        source: "manual",
+        deviceId: "esp32-main"
+      });
+
+      setCommandMessage(response.data.message || "Command sent");
+      const commandsResponse = await fetchMyDeviceCommands();
+      setCommands(Array.isArray(commandsResponse.data) ? commandsResponse.data : []);
+    } catch (error) {
+      setCommandError(error.response?.data?.message || "Unable to send switch command");
+    } finally {
+      setActiveSwitch("");
+    }
+  };
 
   const chartHistory = useMemo(() => [...history].reverse().slice(-8), [history]);
   const labels = useMemo(
@@ -219,6 +259,108 @@ function IoTDashboard() {
         {systemHealth.map((item) => (
           <StatCard key={item.label} label={item.label} value={item.value} tone={item.tone} />
         ))}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-6">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Relay Control</p>
+            <h3 className="mt-1 text-xl font-bold text-slate-950">Switch hardware from farmer login</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Relay 1 and Relay 2 commands are queued for your ESP32. The hardware can poll the backend
+              and execute the latest pending command.
+            </p>
+          </div>
+
+          {commandMessage ? (
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {commandMessage}
+            </div>
+          ) : null}
+
+          {commandError ? (
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {commandError}
+            </div>
+          ) : null}
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {[
+              { device: "relay1", title: "Relay 1", hint: "Pump / water motor" },
+              { device: "relay2", title: "Relay 2", hint: "Fogger / fan / light" }
+            ].map((relay) => (
+              <div key={relay.device} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <p className="text-lg font-semibold text-slate-900">{relay.title}</p>
+                <p className="mt-1 text-sm text-slate-500">{relay.hint}</p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitch(relay.device, "ON")}
+                    disabled={activeSwitch === `${relay.device}-ON`}
+                    className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                  >
+                    {activeSwitch === `${relay.device}-ON` ? "Sending..." : "Turn ON"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitch(relay.device, "OFF")}
+                    disabled={activeSwitch === `${relay.device}-OFF`}
+                    className="rounded-2xl bg-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  >
+                    {activeSwitch === `${relay.device}-OFF` ? "Sending..." : "Turn OFF"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">Command Log</p>
+              <h3 className="mt-1 text-xl font-bold text-slate-950">Recent relay commands</h3>
+            </div>
+            <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-600">
+              {commands.length} commands
+            </span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {commands.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                No relay commands sent yet.
+              </div>
+            ) : (
+              commands.map((command) => (
+                <div
+                  key={command._id}
+                  className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-sm"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        {command.device} → {command.action}
+                      </p>
+                      <p className="mt-1 text-slate-500">
+                        {command.createdAt ? new Date(command.createdAt).toLocaleString() : "Recent"}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold uppercase ${
+                        command.status === "executed"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {command.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_30px_60px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-6">

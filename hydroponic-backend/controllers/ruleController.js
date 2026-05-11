@@ -1,4 +1,5 @@
 const DeviceRule = require("../models/DeviceRule");
+const DeviceCommand = require("../models/DeviceCommand");
 const asyncHandler = require("../utils/asyncHandler");
 
 const createRule = asyncHandler(async (req, res) => {
@@ -30,14 +31,24 @@ const updateRule = asyncHandler(async (req, res) => {
 });
 
 const manualControl = asyncHandler(async (req, res) => {
+  const action = String(req.body.action || "").trim().toUpperCase();
+  const device = String(req.body.device || "").trim();
+
+  if (!device || !["ON", "OFF"].includes(action)) {
+    return res.status(400).json({ message: "Valid device and action are required" });
+  }
+
+  const command = await DeviceCommand.create({
+    farmer: req.user._id,
+    device,
+    action,
+    source: "manual",
+    deviceId: req.body.deviceId || "esp32-main"
+  });
+
   res.json({
-    message: "Manual control command prepared",
-    command: {
-      farmer: req.user._id,
-      device: req.body.device,
-      action: req.body.action,
-      mode: "manual"
-    }
+    message: "Manual control command queued",
+    command
   });
 });
 

@@ -6,3 +6,5 @@ export const fetchAlerts = () => client.get("/sensor/alerts");
 export const fetchRules = () => client.get("/rules");
 export const createRule = (payload) => client.post("/rules", payload);
 export const manualControl = (payload) => client.post("/rules/manual-control", payload);
+export const queueDeviceCommand = (payload) => client.post("/device-commands", payload);
+export const fetchMyDeviceCommands = () => client.get("/device-commands/my");
